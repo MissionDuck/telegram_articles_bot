@@ -8,7 +8,7 @@ import html
 import os
 from datetime import time
 from dotenv import load_dotenv
-
+from typing import Set
 
 load_dotenv()
 
@@ -33,7 +33,6 @@ GENERAL_FEEDS = [
     "https://medium.com/feed/tag/technology",
     "https://medium.com/feed/tag/self-improvement"
 ]
-from typing import Set
 
 def get_user_topics(context: ContextTypes.DEFAULT_TYPE) -> Set[str]:
     topics = context.user_data.get("topics")
