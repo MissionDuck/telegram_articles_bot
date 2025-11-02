@@ -138,16 +138,17 @@ def escape_markdown(text):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Приветствие + сохранение chat_id"""
     chat_id = update.message.chat_id
     context.user_data["chat_id"] = chat_id
-    context.application.user_data[chat_id] = {"chat_id": chat_id}
+    users = context.bot_data.setdefault("users", set())
+    users.add(chat_id)
 
     keyboard = [[InlineKeyboardButton("📰 Читать", callback_data="menu")]]
     await update.message.reply_text(
         "👋 Привет!\nХочешь почитать что-то интересное?",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
 
 
 async def set_commands(app):
@@ -299,15 +300,15 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_daily_article(context: ContextTypes.DEFAULT_TYPE):
     """Отправляет статью всем зарегистрированным пользователям"""
-    if not context.application.user_data:
+    users = context.bot_data.get("users", set())
+    if not users:
         return
 
-    for chat_id, data in context.application.user_data.items():
-        if not isinstance(chat_id, int):
-            continue
+    for chat_id in users:
         title, link, summary, image = get_article(GENERAL_FEEDS)
         if not title:
             continue
+
         title = escape_markdown(title)
         summary = escape_markdown(summary[:500])
         keyboard = [[InlineKeyboardButton("🔗 Читать статью", url=link)]]
@@ -321,6 +322,7 @@ async def send_daily_article(context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             print(f"[WARN] Не удалось отправить пользователю {chat_id}: {e}")
+
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
