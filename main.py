@@ -7,8 +7,12 @@ import re
 import html
 import os
 from datetime import time
+from dotenv import load_dotenv
 
-TOKEN = os.environ.get("YOUR_BOT_TOKEN")
+
+load_dotenv()
+
+TOKEN = os.getenv("YOUR_BOT_TOKEN")
 
 USER_ID = None
 USER_TOPICS = set()  # хранит пользовательские темы
@@ -218,11 +222,9 @@ def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(handle_choice))
 
-    # Настраиваем ежедневную статью
     job_queue = app.job_queue
     job_queue.run_daily(send_daily_article, time(hour=9, minute=0, second=0))
 
-    # Устанавливаем команды (чтобы Telegram показывал их в меню)
     app.post_init = set_commands
 
     print("🚀 Bot is running with help + commands menu ☕")
