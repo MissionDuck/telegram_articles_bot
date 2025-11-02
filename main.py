@@ -229,10 +229,19 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "custom":
         topics = get_user_topics(context)
-        await query.edit_message_text(
-            "🎯 Твои темы:", reply_markup=build_topics_keyboard(topics)
-        )
+        keyboard = build_topics_keyboard(topics)
+
+        # если сообщение с фото — отправляем новое
+        if query.message.photo:
+            await query.message.reply_text(
+                "🎯 Твои темы:", reply_markup=keyboard
+            )
+        else:
+            await query.edit_message_text(
+                "🎯 Твои темы:", reply_markup=keyboard
+            )
         return
+
 
     if data.startswith("topic:"):
         topic = data.split(":", 1)[1]
