@@ -332,7 +332,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "➕ /addtopic <тема> — добавить новую тему (например, `/addtopic ai-tools`)\n"
         "📚 В меню доступны категории:\n"
         "  🧠 DevOps\n"
-        "  🌿 Setup\n"
+        "  🌿 Desk Setup\n"
         "  🎲 Random\n"
         "  🎯 Мои темы — твои добавленные теги\n\n"
         "☕ Каждый день утром бот пришлёт новую статью."
