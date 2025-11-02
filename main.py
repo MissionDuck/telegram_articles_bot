@@ -141,7 +141,7 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "back":
         keyboard = [[InlineKeyboardButton("📰 Читать", callback_data="menu")]]
         await query.message.reply_text(
-            "👋 Привет, Амир!\nХочешь почитать ещё?",
+            "👋 Привет,\nХочешь почитать ещё?",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -190,7 +190,7 @@ async def send_daily_article(context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_photo(
         chat_id=USER_ID,
         photo=image,
-        caption=f"☀️ Доброе утро, Амир!\n\n*{title}*\n\n💡 {summary}",
+        caption=f"☀️ Доброе утро\n\n*{title}*\n\n💡 {summary}",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
