@@ -5,7 +5,10 @@ import random
 import requests
 import re
 import html
+import os
 from datetime import time
+
+TOKEN = os.environ.get("YOUR_BOT_TOKEN")
 
 USER_ID = None
 USER_TOPICS = set()  # хранит пользовательские темы
@@ -209,7 +212,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    app = ApplicationBuilder().token("8588469493:AAE1-xZHF3myOG97sAVlxp2eSnLsuJzybHc").build()
+    app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("addtopic", add_topic))
     app.add_handler(CommandHandler("help", help_command))
