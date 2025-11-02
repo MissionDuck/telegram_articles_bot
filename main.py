@@ -110,14 +110,30 @@ async def set_commands(app):
     await app.bot.set_my_commands(commands)
 
 async def add_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # if no args -> usage hint
     if not context.args:
-        await update.message.reply_text("✏️ Используй: /addtopic <название_темы>\nНапример: /addtopic ai-tools")
+        await update.message.reply_text(
+            "✏️ Используй: /addtopic <название_темы>\nНапример: /addtopic ai tools"
+        )
         return
-    topic = context.args[0].lower()
+
+    # support multi-word topics, strip accidental leading '#'
+    topic = " ".join(context.args).strip().lstrip("#").lower()
+
+    # store the topic
     USER_TOPICS.add(topic)
+
+    # buttons: go back to menu, or jump straight to "Мои темы"
+    kb = [
+        [InlineKeyboardButton("↩️ Назад в меню", callback_data="menu")],
+        [InlineKeyboardButton("🎯 Мои темы", callback_data="custom")]
+    ]
     await update.message.reply_text(
-        f"✅ Тема *{topic}* добавлена!\nТеперь она появится в меню 🎯", parse_mode="Markdown"
+        f"✅ Тема *{escape_markdown(topic)}* добавлена!\nТеперь она появится в меню 🎯",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(kb)
     )
+
 
 async def show_menu(query):
     base_buttons = [
