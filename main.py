@@ -343,7 +343,7 @@ def main():
     job_queue = app.job_queue
     job_queue.run_daily(send_daily_article, time(hour=9, minute=0, second=0))
 
-    app.post_init = lambda _: app.create_task(set_commands(app))
+    app.post_init = set_commands
 
     print("🚀 Bot is running with multi-user daily feed ☕")
     app.run_polling()
