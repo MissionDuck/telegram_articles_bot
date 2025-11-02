@@ -15,8 +15,6 @@ load_dotenv()
 TOKEN = os.getenv("YOUR_BOT_TOKEN")
 
 USER_ID = None
-USER_TOPICS = set()  # хранит пользовательские темы
-
 DEVOPS_FEEDS = [
     "https://dev.to/feed/tag/devops",
     "https://medium.com/feed/tag/devops",
@@ -35,6 +33,34 @@ GENERAL_FEEDS = [
     "https://medium.com/feed/tag/technology",
     "https://medium.com/feed/tag/self-improvement"
 ]
+from typing import Set
+
+def get_user_topics(context: ContextTypes.DEFAULT_TYPE) -> Set[str]:
+    topics = context.user_data.get("topics")
+    if topics is None:
+        topics = set()
+        context.user_data["topics"] = topics
+    return topics
+
+def slugify_tag(topic: str) -> str:
+    # Medium tags are usually hyphen-separated lowercase
+    return re.sub(r'\s+', '-', topic.strip().lower())
+
+def build_topics_keyboard(topics: Set[str]):
+    if not topics:
+        return InlineKeyboardMarkup([[InlineKeyboardButton("➕ Добавить тему", callback_data="hint_addtopic")],[InlineKeyboardButton("↩️ Назад", callback_data="menu")]])
+    buttons = []
+    # make 2 columns because humans love symmetry
+    row = []
+    for t in sorted(topics):
+        row.append(InlineKeyboardButton(t, callback_data=f"topic:{t}"))
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+    buttons.append([InlineKeyboardButton("↩️ В меню", callback_data="menu")])
+    return InlineKeyboardMarkup(buttons)
 
 def fetch_feed(url):
     headers = {"User-Agent": "Mozilla/5.0 (AmirBot Reader)"}
@@ -110,39 +136,40 @@ async def set_commands(app):
     await app.bot.set_my_commands(commands)
 
 async def add_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # if no args -> usage hint
     if not context.args:
         await update.message.reply_text(
             "✏️ Используй: /addtopic <название_темы>\nНапример: /addtopic ai tools"
         )
         return
 
-    # support multi-word topics, strip accidental leading '#'
-    topic = " ".join(context.args).strip().lstrip("#").lower()
+    topic = " ".join(context.args).strip().lstrip("#")
+    topics = get_user_topics(context)
+    topics.add(topic)
 
-    # store the topic
-    USER_TOPICS.add(topic)
-
-    # buttons: go back to menu, or jump straight to "Мои темы"
     kb = [
-        [InlineKeyboardButton("↩️ Назад в меню", callback_data="menu")],
-        [InlineKeyboardButton("🎯 Мои темы", callback_data="custom")]
+        [InlineKeyboardButton("🎯 Мои темы", callback_data="custom")],
+        [InlineKeyboardButton("↩️ Назад в меню", callback_data="menu")]
     ]
     await update.message.reply_text(
-        f"✅ Тема *{escape_markdown(topic)}* добавлена!\nТеперь она появится в меню 🎯",
+        f"✅ Тема *{escape_markdown(topic)}* добавлена!\nОна появится в списке твоих тем.",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(kb)
     )
 
 
-async def show_menu(query):
+
+async def show_menu(query, context: ContextTypes.DEFAULT_TYPE):
     base_buttons = [
         [InlineKeyboardButton("🧠 DevOps", callback_data="devops")],
         [InlineKeyboardButton("🌿 Setup", callback_data="setup")],
         [InlineKeyboardButton("🎲 Random", callback_data="random")]
     ]
-    if USER_TOPICS:
+
+    # per-user topics
+    topics = get_user_topics(context)
+    if topics:
         base_buttons.append([InlineKeyboardButton("🎯 Мои темы", callback_data="custom")])
+
     base_buttons.append([InlineKeyboardButton("↩️ Назад", callback_data="back")])
 
     try:
@@ -150,15 +177,17 @@ async def show_menu(query):
     except:
         await query.message.reply_text("📚 Что читаем сегодня?", reply_markup=InlineKeyboardMarkup(base_buttons))
 
+
 async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    data = query.data
 
-    if query.data == "menu":
-        await show_menu(query)
+    if data == "menu":
+        await show_menu(query, context)
         return
 
-    if query.data == "back":
+    if data == "back":
         keyboard = [[InlineKeyboardButton("📰 Читать", callback_data="menu")]]
         await query.message.reply_text(
             "👋 Привет,\nХочешь почитать ещё?",
@@ -166,14 +195,49 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    if query.data == "custom":
-        if not USER_TOPICS:
-            await query.message.reply_text("🪄 У тебя пока нет добавленных тем. Добавь их командой /addtopic <тема>")
+    if data == "hint_addtopic":
+        await query.message.reply_text("➕ Добавь тему: `/addtopic <тема>`", parse_mode="Markdown")
+        return
+
+    # Show per-user topic list
+    if data == "custom":
+        topics = get_user_topics(context)
+        await query.edit_message_text(
+            "🎯 Твои темы:",
+            reply_markup=build_topics_keyboard(topics)
+        )
+        return
+
+    # Handle a specific topic chosen from the list
+    if data.startswith("topic:"):
+        topic = data.split(":", 1)[1]
+        slug = slugify_tag(topic)
+        feeds = [f"https://medium.com/feed/tag/{slug}"]
+
+        title, link, summary, image = get_article(feeds)
+        if not title:
+            await query.message.reply_text("❌ Не удалось загрузить статью по этой теме.")
             return
-        feeds = [f"https://medium.com/feed/tag/{t}" for t in USER_TOPICS]
-    elif query.data == "devops":
+
+        title = escape_markdown(title)
+        summary = escape_markdown(summary[:500])
+        keyboard = [
+            [InlineKeyboardButton("🔗 Читать оригинал", url=link)],
+            [InlineKeyboardButton("⬅️ К списку тем", callback_data="custom")],
+            [InlineKeyboardButton("🏠 Меню", callback_data="menu")]
+        ]
+        await query.message.reply_photo(
+            photo=image,
+            caption=f"*{title}*\n\n💡 {summary}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    # Built-in categories
+    if data == "devops":
         feeds = DEVOPS_FEEDS
-    elif query.data == "setup":
+    elif data == "setup":
         feeds = SETUP_FEEDS
     else:
         feeds = GENERAL_FEEDS
@@ -195,6 +259,7 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 
 
