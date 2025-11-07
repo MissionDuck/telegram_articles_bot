@@ -88,11 +88,12 @@ def fetch_feed(url):
         return None
 
 
-def clean_html(raw_html):
+def clean_html(raw_html: str) -> str:
+    """Remove HTML tags, decode entities, and clean escaped characters from feed content."""
     text = re.sub(r"<li[^>]*>", "\n• ", raw_html)
     text = re.sub(r"<[^>]+>", "", text)
     text = html.unescape(text)
-    text = re.sub(r"\\\\?-", " ", text)
+    text = re.sub(r"\\([\-.,!?()])", r"\1", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
