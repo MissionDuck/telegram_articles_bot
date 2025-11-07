@@ -1,3 +1,13 @@
+import os
+import re
+import html
+import random
+from datetime import time
+from typing import Set
+
+import feedparser
+import requests
+from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
     ApplicationBuilder,
@@ -5,15 +15,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-import feedparser
-import random
-import requests
-import re
-import html
-import os
-from datetime import time
-from dotenv import load_dotenv
-from typing import Set
 
 load_dotenv()
 
@@ -90,7 +91,7 @@ def fetch_feed(url):
 def clean_html(raw_html):
     text = re.sub(r"<li[^>]*>", "\n• ", raw_html)
     text = re.sub(r"<[^>]+>", "", text)
-    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"\\-", " ", text)
     text = html.unescape(text)
     return text.strip()
 
@@ -356,7 +357,7 @@ def main():
 
     app.post_init = set_commands
 
-    print("🚀 Bot is running with multi-user daily feed ☕")
+    print("🚀 Bot is running correctly ☕")
     app.run_polling()
 
 
