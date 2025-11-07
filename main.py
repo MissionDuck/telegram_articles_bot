@@ -91,9 +91,10 @@ def fetch_feed(url):
 def clean_html(raw_html):
     text = re.sub(r"<li[^>]*>", "\n• ", raw_html)
     text = re.sub(r"<[^>]+>", "", text)
-    text = re.sub(r"\\-", " ", text)
     text = html.unescape(text)
-    return text.strip()
+    text = re.sub(r"\\\\?-", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 def get_image(entry):
