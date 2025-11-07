@@ -25,6 +25,6 @@ jobs:
           pip install pylint
           pip install -r requirements.txt || echo "No requirements.txt found"
 
-      - name: Run Pylint
+      - name: Run Pylint (fail if score < 8.0)
         run: |
-          pylint $(git ls-files '*.py') --exit-zero
+          pylint $(git ls-files '*.py') --fail-under=8.0
